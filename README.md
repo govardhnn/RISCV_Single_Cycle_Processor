@@ -95,7 +95,9 @@ and `MemWrite`. Access width comes from the current instruction's `funct3`.
 `MEM_WORDS` counts 32-bit words. `INIT_FILE` is a `$readmemh` image path relative
 to the simulator's working directory; an empty string disables image loading.
 The bundled memory initializes to zero before loading an image. The standalone
-legacy `Instruction_Memory` module is not used by `Single_Cycle_Top`.
+legacy `Instruction_Memory` module is not used by `Single_Cycle_Top`; it also
+accepts `INIT_FILE`, defaulting to `instructions.txt`, with no machine-specific
+absolute path. For example: `Instruction_Memory #(.INIT_FILE("program.hex"))`.
 
 Reset is active high and asynchronously resets the PC to zero and the machine
 CSR state. Normal writes are disabled while reset is asserted. Register `x0`

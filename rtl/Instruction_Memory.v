@@ -20,7 +20,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-module Instruction_Memory(
+module Instruction_Memory #(
+                          parameter INIT_FILE = "instructions.txt"
+                          )(
 			  input [31:0] 	A,
 			  output [31:0] RD
 			  );
@@ -37,7 +39,9 @@ module Instruction_Memory(
 
    initial
      begin
-	$readmemh("instructions.txt",I_MEM_BLOCK);
+        // Relative paths resolve from the simulator's working directory.
+        // Override INIT_FILE when instantiating; an empty string skips loading.
+        if (INIT_FILE != "") $readmemh(INIT_FILE, I_MEM_BLOCK);
      end
 
    assign RD = I_MEM_BLOCK[A[31:2]]; // word aligned
