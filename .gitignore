@@ -1,0 +1,27 @@
+# Simulation builds and waveforms
+/sim/
+/obj_dir/
+*.vcd
+*.fst
+*.vvp
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Editor backups, autosaves, and swap files
+*~
+\#*\#
+.#*
+*.swp
+*.swo
+
+# LaTeX build intermediates (keep .tex sources and optional .pdf outputs)
+/docs/*.aux
+/docs/*.log
+/docs/*.fls
+/docs/*.fdb_latexmk
+/docs/*.synctex.gz
+/docs/*.toc
+/docs/*.out

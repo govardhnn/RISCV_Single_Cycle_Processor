@@ -20,7 +20,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-module Single_Cycle_Top(
+module Single_Cycle_Top #(
+   parameter MEM_WORDS = 16384,
+   parameter INIT_FILE = "instructions.txt"
+)(
 			input 	      clk,reset,
 			output [31:0] WriteData,DataAddr,
 			output 	      MemWrite );
@@ -37,14 +40,13 @@ module Single_Cycle_Top(
 			       .ALUResult(DataAddr),
 			       .WriteData(WriteData) );
 
-   Instruction_Memory Instr_Memory ( 
-				     .A(PC),
-				     .RD(Instr) );
-
-   Data_Memory Data_Memory (
-			    .clk(clk), 
+   Data_Memory #(.WORDS(MEM_WORDS), .INIT_FILE(INIT_FILE)) Data_Memory (
+                                    .IA(PC),
+                                    .Instr(Instr),
+			    .clk(clk),
 			    .WE(MemWrite),
-			    .A(DataAddr), 
+			    .funct3(Instr[14:12]),
+			    .A(DataAddr),
 			    .WD(WriteData),
 			    .RD(ReadData) );
 

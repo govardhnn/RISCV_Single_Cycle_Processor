@@ -23,39 +23,49 @@
 module Control_Unit(
 		    input wire [6:0]  op,
 		    input wire [2:0]  funct3,
-		    input wire	      funct7b5, Zero, // function 7 is the 5th bit
+		    input wire	      funct7b5, Zero, LT, LTU,
 
 		    output wire [1:0] ResultSrc,
-		    output wire	      MemWrite, PCSrc, ALUSrc, RegWrite,Jump,
-		    output wire [1:0] ImmSrc,
+		    output wire	      MemWrite, PCSrc, ALUSrc, RegWrite, Jump, PCSrcA, CSRWrite,
+		    output wire	      CSRSrc,    // 0=rs1, 1=zimm (funct3[2])
+		    output wire [2:0] ImmSrc,
 		    output wire [3:0] ALUControl
 		    );
 
-   wire [1:0]			      ALUop;
-   wire				      Branch;
-   
+   wire [1:0] ALUop;
+   wire       Branch;
+
    Main_Decoder Main_Decoder(
-  			     .op(op),
-			     .ResultSrc(ResultSrc),
-			     .MemWrite(MemWrite),
-			     .Branch(Branch),
-  			     .ALUSrc(ALUSrc),
-			     .RegWrite(RegWrite),
-  			     .Jump(Jump),
-			     .ImmSrc(ImmSrc),
-			     .ALUop(ALUop) );
-   
+			      .op(op),
+			      .funct3(funct3),
+			      .ResultSrc(ResultSrc),
+			      .MemWrite(MemWrite),
+			      .Branch(Branch),
+			      .ALUSrc(ALUSrc),
+			      .RegWrite(RegWrite),
+			      .Jump(Jump),
+			      .PCSrcA(PCSrcA),
+			      .CSRWrite(CSRWrite),
+			      .ImmSrc(ImmSrc),
+			      .ALUop(ALUop) );
+
    ALU_Decoder ALU_Decoder(
-  			   .opb5(op[5]),
-			   .funct3(funct3),
-			   .funct7b5(funct7b5),
-			   .ALUOp(ALUop),
-			   .ALUControl(ALUControl) );
-   
-   //for branches beq, bne, blt, bge, bltu, bgeu
-   //make modifications later - get sign from ALU, make conditions for all branches  
-  
-   assign PCSrc = Branch & Zero | Jump;
-    
-   
+			    .opb5(op[5]),
+			    .funct3(funct3),
+			    .funct7b5(funct7b5),
+			    .ALUOp(ALUop),
+			    .ALUControl(ALUControl) );
+
+   // CSRSrc: funct3[2]=1 selects zero-extended 5-bit zimm (CSRRWI/CSRRSI/CSRRCI)
+   //         funct3[2]=0 selects rs1 register value  (CSRRW/CSRRS/CSRRC)
+   assign CSRSrc = funct3[2];
+
+   // Branch condition based on funct3:
+   //   funct3[2:1]: 00=Zero (BEQ/BNE), 10=LT (BLT/BGE), 11=LTU (BLTU/BGEU)
+   //   funct3[0]:   0=normal, 1=invert condition (BNE, BGE, BGEU)
+   wire BranchCond;
+   assign BranchCond = (funct3[2:1] == 2'b00) ? Zero :
+                       (funct3[2:1] == 2'b10) ? LT   : LTU;
+   assign PCSrc = (Branch & (BranchCond ^ funct3[0])) | Jump;
+
 endmodule

@@ -20,36 +20,51 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
+// Control signal encoding (14 bits):
+// RegWrite_ImmSrc[2:0]_ALUSrc_MemWrite_ResultSrc[1:0]_Branch_ALUop[1:0]_Jump_PCSrcA_CSRWrite
+//
+// ImmSrc: 000=I-type  001=S-type  010=B-type  011=J-type  100=U-type
+// ResultSrc: 00=ALUResult  01=MemReadData  10=PC+4  11=CSRReadData
+// ALUop:     00=add  01=sub  10=R/I-type  11=LUI
+// PCSrcA:    0=rs1   1=PC  (selects ALU SrcA for AUIPC)
+// CSRWrite:  1=write CSR register file
+
 module Main_Decoder(
 		    input wire [6:0]  op,
+		    input wire [2:0]  funct3,
 		    output wire [1:0] ResultSrc,
-		    output wire       MemWrite, Branch,ALUSrc, RegWrite,Jump,
-		    output wire [1:0] ImmSrc, ALUop
+		    output wire       MemWrite, Branch, ALUSrc, RegWrite, Jump, PCSrcA, CSRWrite,
+		    output wire [2:0] ImmSrc,
+		    output wire [1:0] ALUop
 		    );
 
-   reg [10:0] 			      control_signals;
-   
-   always@(*)
-     case(op)
-       //RegWrite_ImmSrc_ALUSrc_MemWrite_ResultSrc_Branch_ALUop_Jump
-       7'b0000011: control_signals = 11'b1_00_1_0_01_0_00_0;//lw
-       7'b0100011: control_signals = 11'b0_01_1_1_00_0_00_0;//sw
-       7'b0110011: control_signals = 11'b1_xx_0_0_00_0_10_0;//R-type
-       7'b0010011: control_signals = 11'b1_00_1_0_00_0_10_0;//I-typr ALU
-       7'b1100011: control_signals = 11'b0_10_0_0_00_1_01_0;//beq
-       
-       7'b1100011: control_signals = 11'b0_10_0_0_00_1_01_0;//B-type Branch
-       7'b1101111: control_signals = 11'b1_11_0_0_10_0_00_1;//jal
-       7'b1100111: control_signals = 11'b1_00_1_0_10_0_00_1;//jalr
-        7'b0110111: control_signals = 11'b1_00_1_0_00_0_11_0;//U-type lui
-        7'b0010111: control_signals = 11'b1_00_1_0_00_0_01_0;// U-type AUIPC
-        
-        7'b0000000: control_signals = 11'b0_00_0_0_00_0_00_0;//reset conditionm
+   reg [13:0] control_signals;
 
-       default:    control_signals = 11'bx_xx_x_x_xx_x_xx_x;
-     endcase
+   always@(*) begin
+      case(op)
+	//                RegWrite_ImmSrc_ALUSrc_MemWrite_ResultSrc_Branch_ALUop_Jump_PCSrcA_CSRWrite
+	7'b0000011: control_signals = 14'b1_000_1_0_01_0_00_0_0_0; // loads  (LB/LH/LW/LBU/LHU)
+	7'b0100011: control_signals = 14'b0_001_1_1_00_0_00_0_0_0; // stores (SB/SH/SW)
+	7'b0110011: control_signals = 14'b1_000_0_0_00_0_10_0_0_0; // R-type
+	7'b0010011: control_signals = 14'b1_000_1_0_00_0_10_0_0_0; // I-type ALU
+	7'b1100011: control_signals = 14'b0_010_0_0_00_1_01_0_0_0; // B-type branches
+	7'b1101111: control_signals = 14'b1_011_0_0_10_0_00_1_0_0; // JAL
+	7'b1100111: control_signals = 14'b1_000_1_0_10_0_00_1_0_0; // JALR
+	7'b0110111: control_signals = 14'b1_100_1_0_00_0_11_0_0_0; // LUI
+	7'b0010111: control_signals = 14'b1_100_1_0_00_0_00_0_1_0; // AUIPC (ALUop=add, SrcA=PC)
+	7'b0001111: control_signals = 14'b0_000_0_0_00_0_00_0_0_0; // FENCE/FENCE.I: ordered, uncached memory
+	7'b1110011: // ECALL/EBREAK/CSR
+	  if (funct3 == 3'b000)
+	    control_signals = 14'b0_000_0_0_00_0_00_0_0_0; // ECALL/EBREAK/MRET handled by trap logic
+	  else
+	    control_signals = 14'b1_000_0_0_11_0_00_0_0_1; // CSR (rd <- CSR, CSR <- op(CSR,rs1/zimm))
+	7'b0000000: control_signals = 14'b0_000_0_0_00_0_00_0_0_0; // reset condition
+	default:    control_signals = 14'b0_000_0_0_00_0_00_0_0_0;
+      endcase
+   end
 
-   assign {RegWrite,ImmSrc,ALUSrc,MemWrite,
-	   ResultSrc,Branch,ALUop,Jump} = control_signals;	
-   
+   assign {RegWrite, ImmSrc, ALUSrc, MemWrite,
+	   ResultSrc, Branch, ALUop, Jump, PCSrcA, CSRWrite} = control_signals;
+
 endmodule

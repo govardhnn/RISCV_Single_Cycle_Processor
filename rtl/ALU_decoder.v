@@ -53,12 +53,7 @@ module ALU_Decoder(
               3'b111: ALUControl = 4'b0010; //and,andi
               default: ALUControl = 4'bxxx; 
             endcase
-          2'b11: //ALUOp = 2'b11 and beyond
-            case(funct3)
-              3'b000: ALUControl = 4'b01000; // AUIPC
-              3'b001: ALUControl = 4'b01001; // LUI
-              default: ALUControl = 4'bxxxx;
-            endcase
+          2'b11: ALUControl = 4'b1001; // LUI: {B[31:12],12'b0} where B is U-type imm
           default: ALUControl = 4'bxxxx;
           //ALU Control
           //3'b000 = addition (add, addi)
